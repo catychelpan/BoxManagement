@@ -1,0 +1,244 @@
+﻿@page "/"
+@using Newtonsoft.Json;
+@using System.ComponentModel.DataAnnotations;
+
+
+
+
+<PageTitle>Box Management</PageTitle>
+
+<h1>Box Management</h1>
+
+
+<div class="main_container">
+	<div class="common_container">
+
+		<div class="btn_list_container">
+
+			<button class="btn btn-light" @onclick="ShowBoxPopUp">Add Box</button>
+			<PopUpComponent HeaderText="Add new Box" BodyText="Add details about the box" @ref="popupRef">
+				<InputFrag>
+
+					<EditForm Model=@Box OnValidSubmit="SaveBox">
+						<DataAnnotationsValidator/>
+						<ValidationSummary></ValidationSummary>
+						<InputText class="form-control popuptext" @bind-Value=Box.Name placeholder="Box Name" @bind-Value:event="oninput" />
+						<input type="submit" class="btn-dark btn w-100 mt-3" value="Add Box"/>
+					</EditForm>
+					
+				</InputFrag>
+			</PopUpComponent>
+			
+				
+			<ol>
+				@foreach(BoxModel box in boxCollection)
+				{
+
+					<li class="list-item"><button class="list-btn" value="@box.Id" @onclick="() => ShowItems(box.Id)">@box.Name</button></li>
+					
+					
+				}
+			</ol>
+
+		</div>
+
+
+		<div class="btn_list_container">
+			<button class="btn btn-light" @onclick="ShowItemPopUp">Add Item</button>
+
+			<PopUpComponent HeaderText="Add new Item" BodyText="Add details about the item" @ref="popupRef1">
+				<InputFrag>
+					<div>
+						<label for="boxIDDropdown">Box ID</label>
+
+						<select id="boxIDDropdown" class="form-select w-100" @bind="idForItem">
+
+							@foreach (BoxModel box in boxCollection)
+							{
+								<option class="dropdown-item" value="@box.Id">@box.Name</option>
+							}
+						</select>
+					</div>
+					<EditForm Model=@Item OnValidSubmit="SaveItem">
+						<DataAnnotationsValidator/>
+						<ValidationSummary></ValidationSummary>
+
+						<InputText placeholder="Item Name" class="form-control popuptext" @bind-Value=Item.Name  />
+						<InputText placeholder="Image URL" class="form-control popuptext" @bind-Value=Item.ImgURL  />
+						<input type="submit" class="btn-dark btn w-100 mt-3" value="Save Item" />
+					</EditForm>
+
+				</InputFrag>
+			</PopUpComponent>
+
+			<ol>
+				@foreach (ItemModel item in selecteditemsCollection)
+				{
+
+					<li class="list-item"><button class="list-btn" @onclick="() => ShowItemsImg(item.ImgURL)">@item.Name</button></li>
+				}
+			</ol>
+		</div>
+
+
+	</div>
+
+	<div class="image-container">
+		<img id="img" alt="Selected Image" src="@img_source" />
+	</div>
+	
+
+</div>
+
+
+
+
+
+@code{
+
+	BoxModel Box = new BoxModel();
+	ItemModel Item = new ItemModel();
+
+	private PopUpComponent popupRef;
+	private PopUpComponent popupRef1;
+
+	public int idForItem;
+	public static int boxid = 0;
+	private static string? img_source;
+
+
+	public static string path = "C:\\C#\\BoxManagement\\BoxManagement\\boxes.txt";
+	public static string path2 = "C:\\C#\\BoxManagement\\BoxManagement\\items.txt";
+
+	public static List<BoxModel> boxCollection = new List<BoxModel>();
+	public static List<ItemModel> itemsCollection = new List<ItemModel>();
+	public static List<ItemModel> selecteditemsCollection = new List<ItemModel>();
+
+
+	protected override void OnInitialized()
+	{
+		base.OnInitialized();
+		Box = new BoxModel();
+		Item = new ItemModel();
+		ReadInfoFromFile(path,"B");
+		ReadInfoFromFile(path2, "I");
+		boxid = boxCollection.Count(); 
+	}
+
+
+	private void SaveBox()
+	{
+
+		Box.Id = boxid;
+		boxCollection.Add(Box);
+		WriteInfoToCollection(path, "B");
+		boxid += 1;
+		popupRef.Close();
+
+
+
+	}
+
+	private void SaveItem()
+	{
+		Item.BoxId = idForItem;
+		itemsCollection.Add(Item);
+		WriteInfoToCollection(path2,"I");
+		Item.ImgURL = "";
+		Item.Name = "";
+		popupRef1.Close();
+
+	}
+
+	public void ShowBoxPopUp()
+	{
+
+		popupRef.Show();
+
+	}
+
+	public void ShowItemPopUp()
+	{
+
+		popupRef1.Show();
+
+	}
+
+	public void ShowItems(int id)
+	{
+		selecteditemsCollection = itemsCollection.Where(item => item.BoxId == id).ToList();
+		StateHasChanged();
+	}
+
+	public void ShowItemsImg(string imgURL)
+	{
+		img_source = imgURL;
+		StateHasChanged();
+	}
+
+
+	public static void WriteInfoToCollection(string path, string mode)
+	{
+		try
+		{
+
+			var json = "";
+			if (mode.Equals("B"))
+			{
+				json = JsonConvert.SerializeObject(boxCollection);
+
+			}
+			else
+			{
+				json = JsonConvert.SerializeObject(itemsCollection);
+
+			}
+
+			System.IO.File.WriteAllText(path, json);
+
+
+		}
+		catch (Exception ex)
+		{
+
+			Console.WriteLine("There was a problem in saving artists." + " " + ex.Message);
+		}
+
+	}
+
+	public static void ReadInfoFromFile(string path, string mode)
+	{
+		try
+		{
+			if (System.IO.File.Exists(path))
+			{
+
+				var json2 = System.IO.File.ReadAllText(path);
+				if (mode.Equals("B"))
+				{
+					boxCollection = JsonConvert.DeserializeObject<List<BoxModel>>(json2);
+				}
+				else
+				{
+					itemsCollection = JsonConvert.DeserializeObject<List<ItemModel>>(json2);
+				}
+
+
+			}
+			else
+			{
+			}
+
+		}
+		catch (Exception ex)
+		{
+			
+			Console.WriteLine("There was a problem in reading from file." + " " + ex.Message);
+
+		}
+		
+
+	}
+
+
+}
